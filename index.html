@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a1a">
+<title>হাজিরা অ্যাপ | Firebase Firestore</title>
+<style>
+:root {
+  --bg: #0a0a1a; --bg2: #12122a;
+  --glass: rgba(255,255,255,0.06); --glass-border: rgba(255,255,255,0.12); --glass-strong: rgba(255,255,255,0.1);
+  --primary: #6c5ce7; --primary2: #a29bfe; --accent: #00cec9; --accent2: #55efc4;
+  --danger: #ff7675; --warning: #fdcb6e; --success: #00b894;
+  --text: #f0f0ff; --text-dim: #a0a0c0; --text-muted: #6c6c8a;
+  --shadow: 0 8px 32px rgba(0,0,0,0.4); --shadow-glow: 0 0 40px rgba(108,92,231,0.3);
+  --radius: 20px; --radius-sm: 12px;
+  --font: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { scroll-behavior:smooth; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; line-height: 1.5; position: relative; }
+body::before {
+  content:''; position: fixed; inset: 0; z-index: -2;
+  background: radial-gradient(ellipse 80% 60% at 20% 10%, rgba(108,92,231,0.25), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(0,206,201,0.18), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(162,155,254,0.1), transparent 70%),
+    linear-gradient(180deg, #0a0a1a 0%, #12122a 100%);
+  animation: bgShift 20s ease-in-out infinite alternate;
+}
+@keyframes bgShift { 0% { transform: scale(1) translate(0,0); } 100% { transform: scale(1.1) translate(-2%, -2%); } }
+.orb { position: fixed; border-radius: 50%; filter: blur(80px); opacity: 0.4; z-index: -1; pointer-events: none; animation: float 15s ease-in-out infinite; }
+.orb-1 { width:300px; height:300px; background: var(--primary); top:-100px; left:-100px; }
+.orb-2 { width:250px; height:250px; background: var(--accent); bottom:-80px; right:-80px; animation-delay:-5s; }
+.orb-3 { width:200px; height:200px; background: var(--primary2); top:50%; left:50%; animation-delay:-10s; opacity:0.2; }
+@keyframes float { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(30px,-30px) scale(1.05); } 66% { transform: translate(-20px,20px) scale(0.95); } }
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+.glass { background: var(--glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.glass-strong { background: var(--glass-strong); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.18); border-radius: var(--radius); box-shadow: 0 12px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1); }
+.card-3d { transform: perspective(1200px) rotateX(0deg) rotateY(0deg); transition: transform var(--transition), box-shadow var(--transition); transform-style: preserve-3d; will-change: transform; }
+.card-3d:hover { transform: perspective(1200px) rotateX(2deg) rotateY(-2deg) translateZ(6px); box-shadow: 0 20px 60px rgba(0,0,0,0.5), var(--shadow-glow); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 22px; border: none; border-radius: 14px; font-family: var(--font); font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all var(--transition); background: var(--glass-strong); color: var(--text); border: 1px solid var(--glass-border); position: relative; overflow: hidden; user-select: none; }
+.btn::after { content:''; position: absolute; inset: 0; background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.08) 50%, transparent 60%); transform: translateX(-100%); transition: transform 0.6s; }
+.btn:hover::after { transform: translateX(100%); }
+.btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(108,92,231,0.3); }
+.btn:active { transform: translateY(0) scale(0.98); }
+.btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary2)); border: none; color: #fff; box-shadow: 0 4px 20px rgba(108,92,231,0.4); }
+.btn-primary:hover { box-shadow: 0 8px 32px rgba(108,92,231,0.6); }
+.btn-accent { background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; color: #0a0a1a; font-weight: 700; box-shadow: 0 4px 20px rgba(0,206,201,0.3); }
+.btn-danger { background: linear-gradient(135deg, #ff7675, #d63031); border: none; color:#fff; }
+.btn-sm { padding: 8px 14px; font-size: 0.82rem; border-radius: 10px; }
+.btn-xs { padding: 5px 10px; font-size: 0.75rem; border-radius: 8px; }
+.btn-ghost { background: transparent; border: 1px solid var(--glass-border); }
+.btn-ghost:hover { background: var(--glass); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.3px; }
+.badge-present { background: rgba(0,184,148,0.15); color: var(--success); border:1px solid rgba(0,184,148,0.3); }
+.badge-absent { background: rgba(255,118,117,0.15); color: var(--danger); border:1px solid rgba(255,118,117,0.3); }
+.badge-late { background: rgba(253,203,110,0.15); color: var(--warning); border:1px solid rgba(253,203,110,0.3); }
+.badge-leave { background: rgba(108,92,231,0.15); color: var(--primary2); border:1px solid rgba(108,92,231,0.3); }
+.badge-holiday { background: rgba(160,160,192,0.15); color: var(--text-dim); border:1px solid rgba(160,160,192,0.3); }
+.input, select, textarea { width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 12px; color: var(--text); font-family: var(--font); font-size: 0.95rem; outline: none; transition: all var(--transition); }
+.input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(108,92,231,0.2); background: rgba(255,255,255,0.08); }
+.input::placeholder { color: var(--text-muted); }
+select option { background: var(--bg2); color: var(--text); }
+label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-bottom: 6px; font-weight: 500; }
+.form-group { margin-bottom: 16px; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+.row > * { flex: 1; min-width: 0; }
+.text-center { text-align: center; } .text-dim { color: var(--text-dim); } .text-muted { color: var(--text-muted); }
+.mt-1 { margin-top: 8px; } .mt-2 { margin-top: 16px; } .mt-3 { margin-top: 24px; }
+.mb-1 { margin-bottom: 8px; } .mb-2 { margin-bottom: 16px; } .mb-3 { margin-bottom: 24px; }
+.hidden { display: none !important; } .w-full { width: 100%; }
+.flex { display: flex; } .items-center { align-items: center; } .justify-between { justify-content: space-between; } .justify-center { justify-content: center; }
+.gap-1 { gap: 8px; } .gap-2 { gap: 16px; } .gap-3 { gap: 24px; } .flex-wrap { flex-wrap: wrap; }
+.grid { display: grid; gap: 16px; } .grid-2 { grid-template-columns: repeat(2, 1fr); } .grid-3 { grid-template-columns: repeat(3, 1fr); } .grid-4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 768px) { .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); } .grid-2 { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+.icon { font-size: 1.2em; line-height: 1; }
+.avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; background: linear-gradient(135deg, var(--primary), var(--accent)); flex-shrink: 0; box-shadow: 0 4px 12px rgba(108,92,231,0.3); }
+.avatar-lg { width: 80px; height: 80px; font-size: 2.4rem; }
+.stat-card { padding: 20px; text-align: center; position: relative; overflow: hidden; }
+.stat-card .stat-value { font-size: 2rem; font-weight: 800; line-height: 1.2; }
+.stat-card .stat-label { font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+.stat-card .stat-icon { font-size: 1.6rem; margin-bottom: 8px; opacity: 0.8; }
+#login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; perspective: 1200px; }
+.login-card { width: 100%; max-width: 420px; padding: 36px 28px; text-align: center; animation: loginIn 0.8s cubic-bezier(0.16, 1, 0.3, 1); transform-style: preserve-3d; }
+@keyframes loginIn { from { opacity:0; transform: translateY(40px) rotateX(10deg) scale(0.95); } to { opacity:1; transform: translateY(0) rotateX(0) scale(1); } }
+.login-logo { width: 72px; height: 72px; margin: 0 auto 16px; border-radius: 22px; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; box-shadow: 0 8px 32px rgba(108,92,231,0.4); animation: logoPulse 3s ease-in-out infinite; }
+@keyframes logoPulse { 0%,100% { transform: translateZ(20px) scale(1); } 50% { transform: translateZ(20px) scale(1.05); } }
+.login-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; }
+.login-sub { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 16px; }
+.firebase-status { font-size: 0.78rem; padding: 6px 12px; border-radius: 20px; display: inline-block; margin-bottom: 16px; }
+.firebase-status.connecting { background: rgba(253,203,110,0.15); color: var(--warning); }
+.firebase-status.ready { background: rgba(0,184,148,0.15); color: var(--success); }
+.firebase-status.error { background: rgba(255,118,117,0.15); color: var(--danger); }
+.role-tabs { display: flex; background: rgba(255,255,255,0.04); border-radius: 14px; padding: 4px; margin-bottom: 24px; border: 1px solid var(--glass-border); }
+.role-tab { flex: 1; padding: 10px; border: none; background: transparent; color: var(--text-dim); font-family: var(--font); font-size: 0.9rem; font-weight: 600; border-radius: 10px; cursor: pointer; transition: all var(--transition); }
+.role-tab.active { background: linear-gradient(135deg, var(--primary), var(--primary2)); color: #fff; box-shadow: 0 4px 16px rgba(108,92,231,0.4); }
+.login-form { animation: fadeSlide 0.4s ease; }
+@keyframes fadeSlide { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+.login-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 12px; }
+.login-hint code { background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; color: var(--accent); }
+.app-shell { display: none; min-height: 100vh; }
+.app-shell.active { display: flex; }
+.sidebar { width: 260px; flex-shrink: 0; padding: 24px 16px; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; border-right: 1px solid var(--glass-border); background: rgba(10,10,26,0.6); backdrop-filter: blur(24px); z-index: 100; }
+.sidebar-logo { display: flex; align-items: center; gap: 12px; padding: 0 8px 20px; border-bottom: 1px solid var(--glass-border); margin-bottom: 16px; }
+.sidebar-logo .logo-icon { width: 42px; height: 42px; border-radius: 14px; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+.sidebar-logo .logo-text { font-weight: 800; font-size: 1.1rem; }
+.sidebar-logo .logo-sub { font-size: 0.7rem; color: var(--text-muted); }
+.sidebar-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; color: var(--text-dim); font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all var(--transition); border: none; background: transparent; font-family: var(--font); text-align: left; width: 100%; }
+.nav-item:hover { background: var(--glass); color: var(--text); transform: translateX(4px); }
+.nav-item.active { background: linear-gradient(135deg, rgba(108,92,231,0.25), rgba(0,206,201,0.1)); color: #fff; border-left: 3px solid var(--primary); box-shadow: 0 4px 16px rgba(108,92,231,0.15); }
+.nav-item .icon { font-size: 1.1rem; width: 22px; text-align: center; }
+.sidebar-footer { padding-top: 16px; border-top: 1px solid var(--glass-border); margin-top: 16px; }
+.main-content { flex: 1; padding: 24px; min-width: 0; max-width: 100%; overflow-x: hidden; }
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; gap: 16px; flex-wrap: wrap; }
+.topbar h2 { font-size: 1.4rem; font-weight: 800; }
+.topbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.user-chip { display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 6px; border-radius: 30px; background: var(--glass); border: 1px solid var(--glass-border); }
+.user-chip .avatar { width: 32px; height: 32px; font-size: 1rem; }
+.user-chip .user-name { font-size: 0.85rem; font-weight: 600; }
+.user-chip .user-role { font-size: 0.7rem; color: var(--text-muted); }
+.hamburger { display: none; width: 44px; height: 44px; border-radius: 12px; background: var(--glass); border: 1px solid var(--glass-border); color: var(--text); font-size: 1.3rem; cursor: pointer; align-items: center; justify-content: center; }
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 99; }
+@media (max-width: 900px) {
+  .hamburger { display: flex; }
+  .sidebar { position: fixed; left: 0; top: 0; transform: translateX(-100%); transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); width: 280px; height: 100vh; z-index: 200; }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-overlay.open { display: block; }
+  .main-content { padding: 16px; }
+  .app-shell.active { display: block; }
+}
+.table-wrap { overflow-x: auto; border-radius: var(--radius); }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+thead th { text-align: left; padding: 14px 16px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); border-bottom: 1px solid var(--glass-border); white-space: nowrap; }
+tbody td { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+tbody tr { transition: background var(--transition); }
+tbody tr:hover { background: rgba(255,255,255,0.03); }
+tbody tr:last-child td { border-bottom: none; }
+.member-cell { display: flex; align-items: center; gap: 10px; }
+.member-cell .avatar { width: 36px; height: 36px; font-size: 1rem; }
+.member-cell .member-info .name { font-weight: 600; font-size: 0.9rem; }
+.member-cell .member-info .id { font-size: 0.72rem; color: var(--text-muted); }
+@media (max-width: 600px) {
+  thead { display: none; }
+  table, tbody, tr, td { display: block; width: 100%; }
+  tbody tr { padding: 12px; margin-bottom: 10px; border-radius: 14px; background: var(--glass); border: 1px solid var(--glass-border); }
+  tbody td { padding: 6px 0; border: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  tbody td::before { content: attr(data-label); font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; flex-shrink: 0; }
+  .member-cell { justify-content: flex-end; }
+}
+.status-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.status-btn { padding: 8px 12px; border-radius: 10px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.03); color: var(--text-dim); font-family: var(--font); font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all var(--transition); display: flex; align-items: center; gap: 4px; }
+.status-btn:hover { border-color: var(--primary); color: var(--text); transform: translateY(-1px); }
+.status-btn.active[data-status="present"] { background: rgba(0,184,148,0.2); border-color: var(--success); color: var(--success); box-shadow: 0 0 12px rgba(0,184,148,0.2); }
+.status-btn.active[data-status="absent"] { background: rgba(255,118,117,0.2); border-color: var(--danger); color: var(--danger); box-shadow: 0 0 12px rgba(255,118,117,0.2); }
+.status-btn.active[data-status="late"] { background: rgba(253,203,110,0.2); border-color: var(--warning); color: var(--warning); box-shadow: 0 0 12px rgba(253,203,110,0.2); }
+.status-btn.active[data-status="leave"] { background: rgba(108,92,231,0.2); border-color: var(--primary2); color: var(--primary2); box-shadow: 0 0 12px rgba(108,92,231,0.2); }
+.status-btn.active[data-status="holiday"] { background: rgba(160,160,192,0.2); border-color: var(--text-dim); color: var(--text-dim); }
+.history-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); margin-bottom: 8px; transition: all var(--transition); }
+.history-item:hover { background: rgba(255,255,255,0.06); transform: translateX(4px); }
+.history-date { font-weight: 600; font-size: 0.9rem; }
+.history-day { font-size: 0.72rem; color: var(--text-muted); }
+#toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; max-width: 360px; }
+.toast { padding: 14px 20px; border-radius: 14px; background: rgba(30,30,60,0.95); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); color: var(--text); font-size: 0.88rem; font-weight: 500; box-shadow: var(--shadow); animation: toastIn 0.4s cubic-bezier(0.16,1,0.3,1); display: flex; align-items: center; gap: 10px; }
+.toast.success { border-left: 3px solid var(--success); }
+.toast.error { border-left: 3px solid var(--danger); }
+.toast.info { border-left: 3px solid var(--primary); }
+@keyframes toastIn { from { opacity:0; transform: translateX(40px) scale(0.95); } to { opacity:1; transform: translateX(0) scale(1); } }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 500; display: none; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.2s ease; }
+.modal-overlay.open { display: flex; }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+.modal { width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; padding: 28px; animation: modalIn 0.35s cubic-bezier(0.16,1,0.3,1); position: relative; }
+@keyframes modalIn { from { opacity:0; transform: translateY(30px) scale(0.96); } to { opacity:1; transform: translateY(0) scale(1); } }
+.modal-title { font-size: 1.2rem; font-weight: 800; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+.modal-close { position: absolute; top: 16px; right: 16px; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--text); font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all var(--transition); }
+.modal-close:hover { background: var(--danger); border-color: var(--danger); }
+.progress-bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.08); overflow: hidden; margin-top: 8px; }
+.progress-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+.bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; background: rgba(10,10,26,0.85); backdrop-filter: blur(24px); border-top: 1px solid var(--glass-border); padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); justify-content: space-around; }
+.bottom-nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 12px; border: none; background: transparent; color: var(--text-muted); font-family: var(--font); font-size: 0.65rem; font-weight: 600; cursor: pointer; border-radius: 10px; transition: all var(--transition); }
+.bottom-nav-item .icon { font-size: 1.2rem; }
+.bottom-nav-item.active { color: var(--primary2); background: rgba(108,92,231,0.12); }
+@media (max-width: 900px) { .bottom-nav { display: flex; } .member-shell .main-content { padding-bottom: 90px; } }
+.empty-state { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+.empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.5; }
+.month-nav { display: flex; align-items: center; gap: 8px; }
+.month-nav button { width: 34px; height: 34px; border-radius: 10px; border:1px solid var(--glass-border); background:var(--glass); color:var(--text); cursor:pointer; font-size:1rem; }
+.month-nav button:hover { background: var(--primary); }
+@media print {
+  .sidebar, .topbar, .btn, .bottom-nav { display: none !important; }
+  .main-content { padding: 0; }
+  body { background: #fff; color: #000; }
+  .glass, .glass-strong { background: #fff; border: 1px solid #ddd; box-shadow: none; backdrop-filter: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<div id="login-screen">
+  <div class="login-card glass-strong card-3d">
+    <div class="login-logo">📋</div>
+    <div class="login-title">হাজিরা সিস্টেম</div>
+    <div class="login-sub">Firebase রিয়েল-টাইম হাজিরা</div>
+    <div id="firebase-status" class="firebase-status connecting">⏳ সংযোগ তৈরি হচ্ছে...</div>
+
+    <div class="role-tabs">
+      <button class="role-tab active" data-role="admin" onclick="switchLoginRole('admin')">🛡️ অ্যাডমিন</button>
+      <button class="role-tab" data-role="member" onclick="switchLoginRole('member')">👤 সদস্য</button>
+    </div>
+
+    <div id="admin-login-form" class="login-form">
+      <div class="form-group">
+        <label>অ্যাডমিন পিন</label>
+        <input type="password" id="admin-pin" class="input" placeholder="পিন দিন" maxlength="20" autocomplete="off">
+      </div>
+      <button class="btn btn-primary w-full" id="btn-login-admin" onclick="loginAdmin()">🔓 লগইন করুন</button>
+      <div class="login-hint">ডিফল্ট পিন: <code>admin123</code></div>
+    </div>
+
+    <div id="member-login-form" class="login-form hidden">
+      <div class="form-group">
+        <label>সদস্য আইডি</label>
+        <input type="text" id="member-id-input" class="input" placeholder="যেমন: M001" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>পাসওয়ার্ড</label>
+        <input type="password" id="member-password-input" class="input" placeholder="পাসওয়ার্ড" autocomplete="off">
+      </div>
+      <button class="btn btn-accent w-full" id="btn-login-member" onclick="loginMember()">🔓 লগইন করুন</button>
+      <div class="login-hint">ডিফল্ট পাসওয়ার্ড: <code>1234</code></div>
+    </div>
+  </div>
+</div>
+
+<div id="admin-panel" class="app-shell">
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+  <aside class="sidebar" id="admin-sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">🛡️</div>
+      <div><div class="logo-text" id="sidebar-org-name">হাজিরা অ্যাপ</div><div class="logo-sub">অ্যাডমিন প্যানেল</div></div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-section="dashboard" onclick="setAdminSection('dashboard')"><span class="icon">📊</span> ড্যাশবোর্ড</button>
+      <button class="nav-item" data-section="members" onclick="setAdminSection('members')"><span class="icon">👥</span> সদস্য তালিকা</button>
+      <button class="nav-item" data-section="attendance" onclick="setAdminSection('attendance')"><span class="icon">📅</span> হাজিরা প্রদান</button>
+      <button class="nav-item" data-section="reports" onclick="setAdminSection('reports')"><span class="icon">📈</span> রিপোর্ট</button>
+      <button class="nav-item" data-section="leaves" onclick="setAdminSection('leaves')"><span class="icon">📝</span> ছুটির আবেদন <span id="leave-badge" class="badge badge-late" style="margin-left:auto;font-size:0.65rem;display:none;"></span></button>
+      <button class="nav-item" data-section="settings" onclick="setAdminSection('settings')"><span class="icon">⚙️</span> সেটিংস</button>
+    </nav>
+    <div class="sidebar-footer"><button class="nav-item" onclick="logout()"><span class="icon">🚪</span> লগআউট</button></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div class="flex items-center gap-2">
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <h2 id="admin-page-title">ড্যাশবোর্ড</h2>
+      </div>
+      <div class="topbar-actions">
+        <div class="user-chip">
+          <div class="avatar">🛡️</div>
+          <div><div class="user-name">অ্যাডমিন</div><div class="user-role">Admin</div></div>
+        </div>
+      </div>
+    </div>
+    <div id="admin-content"></div>
+  </main>
+</div>
+
+<div id="member-panel" class="app-shell member-shell">
+  <main class="main-content" style="width:100%;">
+    <div class="topbar">
+      <div class="flex items-center gap-2"><h2 id="member-page-title">আমার প্রোফাইল</h2></div>
+      <div class="topbar-actions">
+        <div class="user-chip">
+          <div class="avatar" id="member-chip-avatar">👤</div>
+          <div><div class="user-name" id="member-chip-name">সদস্য</div><div class="user-role" id="member-chip-id">M001</div></div>
+        </div>
+        <button class="btn btn-sm btn-ghost" onclick="logout()">🚪</button>
+      </div>
+    </div>
+    <div id="member-content"></div>
+  </main>
+  <div class="bottom-nav">
+    <button class="bottom-nav-item active" data-m-section="profile" onclick="setMemberSection('profile')"><span class="icon">👤</span> প্রোফাইল</button>
+    <button class="bottom-nav-item" data-m-section="attendance" onclick="setMemberSection('attendance')"><span class="icon">📅</span> হাজিরা</button>
+    <button class="bottom-nav-item" data-m-section="leaves" onclick="setMemberSection('leaves')"><span class="icon">📝</span> ছুটি</button>
+  </div>
+</div>
+
+<div id="modal-overlay" class="modal-overlay">
+  <div class="modal glass-strong" id="modal-box">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+// ============================================================
+// FIREBASE SETUP
+// ============================================================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDjX0VR45MBhAYxlOOKvhGFDdHW1JAqS7I",
+  authDomain: "attendance-app-508ee.firebaseapp.com",
+  databaseURL: "https://attendance-app-508ee-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "attendance-app-508ee",
+  storageBucket: "attendance-app-508ee.firebasestorage.app",
+  messagingSenderId: "751692391889",
+  appId: "1:751692391889:web:882c081e305edf28952cf0"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const docRef = doc(db, "attendance", "main");
+
+// ============================================================
+// STATE
+// ============================================================
+const DEFAULT_MEMBERS = [
+  { id:'M001', name:'রহিম উদ্দিন', email:'rahim@example.com', phone:'01712345678', dept:'ডেভেলপমেন্ট', joinDate:'2023-01-15', avatar:'👨‍💻', password:'1234', active:true },
+  { id:'M002', name:'করিম আহমেদ', email:'karim@example.com', phone:'01812345678', dept:'ডিজাইন', joinDate:'2023-03-20', avatar:'👨‍🎨', password:'1234', active:true },
+  { id:'M003', name:'ফাতেমা খাতুন', email:'fatema@example.com', phone:'01912345678', dept:'মার্কেটিং', joinDate:'2022-11-05', avatar:'👩‍💼', password:'1234', active:true },
+  { id:'M004', name:'সাব্বির হোসেন', email:'sabbir@example.com', phone:'01612345678', dept:'অপারেশন', joinDate:'2024-02-10', avatar:'👨‍🔧', password:'1234', active:true },
+  { id:'M005', name:'নুসরাত জাহান', email:'nusrat@example.com', phone:'01512345678', dept:'এইচআর', joinDate:'2021-08-01', avatar:'👩‍💻', password:'1234', active:true },
+];
+
+let state = {
+  members: [...DEFAULT_MEMBERS],
+  attendance: {},
+  leaves: [],
+  settings: { orgName: 'আমার সংগঠন', adminPin: 'admin123' },
+  lastUpdated: null
+};
+
+let currentUser = null;
+let adminSection = 'dashboard';
+let memberSection = 'profile';
+let selectedDate = formatDate(new Date());
+let selectedMonth = formatDate(new Date()).slice(0,7);
+let attendanceDraft = {};
+let initialized = false;
+
+const SESSION_KEY = 'attendance_app_session_v2';
+
+// ============================================================
+// HELPERS
+// ============================================================
+function formatDate(d) {
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function getDaysInMonth(monthKey) {
+  const [y,m] = monthKey.split('-').map(Number);
+  return new Date(y, m, 0).getDate();
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function deepMerge(target, source) {
+  const out = { ...target };
+  for (const k of Object.keys(source)) {
+    if (source[k] && typeof source[k] === 'object' && !Array.isArray(source[k]) && target[k]) {
+      out[k] = deepMerge(target[k], source[k]);
+    } else { out[k] = source[k]; }
+  }
+  return out;
+}
+function saveSession() {
+  if (currentUser) sessionStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+  else sessionStorage.removeItem(SESSION_KEY);
+}
+function loadSession() {
+  try { const raw = sessionStorage.getItem(SESSION_KEY); if (raw) currentUser = JSON.parse(raw); } catch(e) {}
+}
+
+function toast(msg, type='info') {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${type==='success'?'✅':type==='error'?'❌':'ℹ️'}</span> ${escapeHtml(msg)}`;
+  container.appendChild(el);
+  setTimeout(() => { el.style.opacity='0'; el.style.transform='translateX(40px)'; setTimeout(()=>el.remove(),400); }, 3500);
+}
+
+function setFirebaseStatus(text, cls) {
+  const el = document.getElementById('firebase-status');
+  if (el) { el.textContent = text; el.className = 'firebase-status ' + cls; }
+}
+
+// ============================================================
+// FIRESTORE SAVE
+// ============================================================
+async function saveState() {
+  state.lastUpdated = Date.now();
+  try {
+    await setDoc(docRef, state);
+  } catch (e) {
+    console.error("Firestore save failed:", e);
+    toast("সার্ভারে সেভ করা যায়নি", "error");
+  }
+}
+
+// ============================================================
+// FIREBASE INIT
+// ============================================================
+function finalizeInit() {
+  if (initialized) return;
+  initialized = true;
+  document.getElementById('btn-login-admin').disabled = false;
+  document.getElementById('btn-login-member').disabled = false;
+  setFirebaseStatus('✅ সংযুক্ত', 'ready');
+  if (currentUser) showApp();
+  else document.getElementById('login-screen').style.display = 'flex';
+}
+
+function setupRealtimeSync() {
+  onSnapshot(docRef, (snapshot) => {
+    if (!snapshot.exists()) {
+      // First time: create doc with defaults
+      saveState().then(() => finalizeInit());
+      return;
+    }
+    const remote = snapshot.data();
+    if (remote.lastUpdated === state.lastUpdated) {
+      // Own save — don't re-render
+      finalizeInit();
+      return;
+    }
+    state = deepMerge(state, remote);
+    if (currentUser) {
+      if (currentUser.role === 'admin') setAdminSection(adminSection);
+      else setMemberSection(memberSection);
+    }
+    finalizeInit();
+  }, (error) => {
+    console.error("Snapshot error:", error);
+    setFirebaseStatus('❌ সংযোগ ত্রুটি', 'error');
+    document.getElementById('login-screen').style.display = 'flex';
+  });
+}
+
+// Disable login buttons until Firebase ready
+document.getElementById('btn-login-admin').disabled = true;
+document.getElementById('btn-login-member').disabled = true;
+
+loadSession();
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    setupRealtimeSync();
+  } else {
+    signInAnonymously(auth).catch((err) => {
+      console.error("Anonymous sign-in failed:", err);
+      setFirebaseStatus('❌ Auth ত্রুটি — Anonymous Auth চালু করুন', 'error');
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('btn-login-admin').disabled = true;
+      document.getElementById('btn-login-member').disabled = true;
+    });
+  }
+});
+
+// Sign in anonymously right away
+signInAnonymously(auth).catch((err) => {
+  console.error("Anonymous sign-in failed:", err);
+  setFirebaseStatus('❌ Anonymous Auth চালু করুন', 'error');
+  document.getElementById('login-screen').style.display = 'flex';
+});
+
+// ============================================================
+// LOGIN
+// ============================================================
+function switchLoginRole(role) {
+  document.querySelectorAll('.role-tab').forEach(t => t.classList.toggle('active', t.dataset.role === role));
+  document.getElementById('admin-login-form').classList.toggle('hidden', role !== 'admin');
+  document.getElementById('member-login-form').classList.toggle('hidden', role !== 'member');
+}
+
+function loginAdmin() {
+  if (!initialized) { toast('সংযোগ তৈরি হচ্ছে, অপেক্ষা করুন...', 'info'); return; }
+  const pin = document.getElementById('admin-pin').value.trim();
+  if (!pin) { toast('পিন দিন', 'error'); return; }
+  if (pin !== state.settings.adminPin) { toast('ভুল পিন!', 'error'); return; }
+  currentUser = { role:'admin' };
+  saveSession();
+  showApp();
+  toast('অ্যাডমিন লগইন সফল', 'success');
+}
+
+function loginMember() {
+  if (!initialized) { toast('সংযোগ তৈরি হচ্ছে, অপেক্ষা করুন...', 'info'); return; }
+  const id = document.getElementById('member-id-input').value.trim().toUpperCase();
+  const pass = document.getElementById('member-password-input').value.trim();
+  if (!id) { toast('সদস্য আইডি দিন', 'error'); return; }
+  const member = state.members.find(m => m.id.toUpperCase() === id && m.active !== false);
+  if (!member) { toast('সদস্য পাওয়া যায়নি', 'error'); return; }
+  const expectedPass = member.password || '1234';
+  if (pass && pass !== expectedPass && pass !== member.id) { toast('ভুল পাসওয়ার্ড!', 'error'); return; }
+  currentUser = { role:'member', memberId: member.id };
+  saveSession();
+  showApp();
+  toast(`স্বাগতম, ${member.name}`, 'success');
+}
+
+function logout() {
+  currentUser = null;
+  saveSession();
+  document.getElementById('admin-panel').classList.remove('active');
+  document.getElementById('member-panel').classList.remove('active');
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('admin-pin').value = '';
+  document.getElementById('member-id-input').value = '';
+  document.getElementById('member-password-input').value = '';
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  if (currentUser.role === 'admin') {
+    document.getElementById('admin-panel').classList.add('active');
+    document.getElementById('member-panel').classList.remove('active');
+    document.getElementById('sidebar-org-name').textContent = state.settings.orgName || 'হাজিরা অ্যাপ';
+    setAdminSection(adminSection);
+  } else {
+    document.getElementById('member-panel').classList.add('active');
+    document.getElementById('admin-panel').classList.remove('active');
+    const m = getMember(currentUser.memberId);
+    if (m) {
+      document.getElementById('member-chip-avatar').textContent = m.avatar || '👤';
+      document.getElementById('member-chip-name').textContent = m.name;
+      document.getElementById('member-chip-id').textContent = m.id;
+    }
+    setMemberSection(memberSection);
+  }
+}
+
+// ============================================================
+// DATA ACCESS
+// ============================================================
+function getMember(id) { return state.members.find(m => m.id === id); }
+function getAttendanceForDate(date) { return state.attendance[date] || {}; }
+function getMemberAttendance(memberId, monthKey) {
+  const result = [];
+  const days = getDaysInMonth(monthKey);
+  for (let d = 1; d <= days; d++) {
+    const date = `${monthKey}-${String(d).padStart(2,'0')}`;
+    const rec = (state.attendance[date] || {})[memberId];
+    result.push({ date, status: rec?.status || null, ...rec });
+  }
+  return result;
+}
+function getMemberStats(memberId, monthKey) {
+  const records = getMemberAttendance(memberId, monthKey);
+  const stats = { present:0, absent:0, late:0, leave:0, holiday:0, overtime:0, totalMarked:0, totalDays: records.length };
+  records.forEach(r => {
+    if (r.status) { stats[r.status] = (stats[r.status]||0) + 1; stats.totalMarked++; }
+    stats.overtime += Number(r.overtime || 0);
+  });
+  stats.attendancePct = stats.totalMarked ? Math.round(((stats.present + stats.late + stats.leave) / stats.totalMarked) * 100) : 0;
+  return stats;
+}
+function getTodayStats() {
+  const date = formatDate(new Date());
+  const rec = state.attendance[date] || {};
+  const active = state.members.filter(m => m.active !== false);
+  let present=0, absent=0, late=0, leave=0, unmarked=0;
+  active.forEach(m => {
+    const r = rec[m.id];
+    if (!r || !r.status) { unmarked++; return; }
+    if (r.status === 'present') present++;
+    else if (r.status === 'absent') absent++;
+    else if (r.status === 'late') late++;
+    else if (r.status === 'leave') leave++;
+  });
+  return { total: active.length, present, absent, late, leave, unmarked, date };
+}
+
+// ============================================================
+// ADMIN SECTIONS
+// ============================================================
+function toggleSidebar() {
+  document.getElementById('admin-sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+
+function setAdminSection(section) {
+  adminSection = section;
+  document.querySelectorAll('#admin-sidebar .nav-item').forEach(n => n.classList.toggle('active', n.dataset.section === section));
+  const titles = { dashboard:'ড্যাশবোর্ড', members:'সদস্য তালিকা', attendance:'হাজিরা প্রদান', reports:'রিপোর্ট', leaves:'ছুটির আবেদন', settings:'সেটিংস' };
+  document.getElementById('admin-page-title').textContent = titles[section] || 'ড্যাশবোর্ড';
+  document.getElementById('admin-sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+  updateLeaveBadge();
+  const c = document.getElementById('admin-content');
+  if (section === 'dashboard') renderAdminDashboard(c);
+  else if (section === 'members') renderMembers(c);
+  else if (section === 'attendance') renderAttendance(c);
+  else if (section === 'reports') renderReports(c);
+  else if (section === 'leaves') renderLeaves(c);
+  else if (section === 'settings') renderSettings(c);
+}
+
+function updateLeaveBadge() {
+  const pending = state.leaves.filter(l => l.status === 'pending').length;
+  const badge = document.getElementById('leave-badge');
+  if (badge) { badge.style.display = pending ? 'inline-flex' : 'none'; badge.textContent = pending; }
+}
+
+function renderAdminDashboard(container) {
+  const s = getTodayStats();
+  const totalOT = Object.values(state.attendance).reduce((sum, day) => {
+    return sum + Object.values(day).reduce((s2, r) => s2 + Number(r.overtime||0), 0);
+  }, 0);
+  container.innerHTML = `
+    <div class="grid grid-4 mb-3">
+      ${statCard('👥', s.total, 'মোট সদস্য', 'var(--primary2)')}
+      ${statCard('✅', s.present, 'আজ উপস্থিত', 'var(--success)')}
+      ${statCard('❌', s.absent, 'আজ অনুপস্থিত', 'var(--danger)')}
+      ${statCard('⏰', s.late, 'আজ দেরি', 'var(--warning)')}
+    </div>
+    <div class="grid grid-3 mb-3">
+      ${statCard('📝', s.leave, 'আজ ছুটিতে', 'var(--primary2)')}
+      ${statCard('❓', s.unmarked, 'আজ হাজিরা হয়নি', 'var(--text-muted)')}
+      ${statCard('⏱️', totalOT, 'মোট ওভারটাইম (ঘণ্টা)', 'var(--accent)')}
+    </div>
+    <div class="glass-strong card-3d" style="padding:24px;margin-bottom:24px;">
+      <div class="flex justify-between items-center mb-2">
+        <h3 style="font-size:1.1rem;">⚡ দ্রুত হাজিরা</h3>
+        <button class="btn btn-sm btn-primary" onclick="setAdminSection('attendance')">বিস্তারিত →</button>
+      </div>
+      <p class="text-dim" style="font-size:0.85rem;margin-bottom:16px;">আজকের (${formatDate(new Date())}) হাজিরা দিতে নিচের বাটনে ক্লিক করুন।</p>
+      <div class="flex gap-1 flex-wrap">
+        <button class="btn btn-sm btn-accent" onclick="quickMarkAll('present')">✅ সবাই উপস্থিত</button>
+        <button class="btn btn-sm btn-ghost" onclick="quickMarkAll('absent')">❌ সবাই অনুপস্থিত</button>
+        <button class="btn btn-sm btn-ghost" onclick="quickMarkAll('holiday')">🏖️ আজ ছুটি</button>
+      </div>
+    </div>
+    <div class="grid grid-2">
+      <div class="glass-strong card-3d" style="padding:24px;">
+        <h3 style="font-size:1.1rem;margin-bottom:16px;">📋 সাম্প্রতিক ছুটির আবেদন</h3>
+        ${renderRecentLeaves()}
+      </div>
+      <div class="glass-strong card-3d" style="padding:24px;">
+        <h3 style="font-size:1.1rem;margin-bottom:16px;">🏆 এই মাসের সেরা উপস্থিতি</h3>
+        ${renderTopAttendance()}
+      </div>
+    </div>
+  `;
+}
+
+function statCard(icon, value, label, color) {
+  return `<div class="glass-strong card-3d stat-card">
+    <div class="stat-icon" style="color:${color}">${icon}</div>
+    <div class="stat-value" style="color:${color}">${value}</div>
+    <div class="stat-label">${label}</div>
+  </div>`;
+}
+
+function renderRecentLeaves() {
+  const recent = [...state.leaves].sort((a,b) => (b.appliedAt||'').localeCompare(a.appliedAt||'')).slice(0,5);
+  if (!recent.length) return `<div class="empty-state" style="padding:24px;"><div class="empty-icon">📭</div><p>কোনো আবেদন নেই</p></div>`;
+  return recent.map(l => {
+    const m = getMember(l.memberId);
+    const badge = l.status === 'pending' ? 'badge-late' : l.status === 'approved' ? 'badge-present' : 'badge-absent';
+    const label = l.status === 'pending' ? 'অপেক্ষমাণ' : l.status === 'approved' ? 'অনুমোদিত' : 'বাতিল';
+    return `<div class="history-item" style="font-size:0.85rem;">
+      <div><strong>${escapeHtml(m?.name || l.memberId)}</strong><div class="text-muted">${l.fromDate} → ${l.toDate}</div></div>
+      <span class="badge ${badge}">${label}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderTopAttendance() {
+  const mk = formatDate(new Date()).slice(0,7);
+  const list = state.members.filter(m=>m.active!==false).map(m => {
+    const s = getMemberStats(m.id, mk);
+    return { m, pct: s.attendancePct, present: s.present };
+  }).sort((a,b)=>b.pct-a.pct).slice(0,5);
+  if (!list.length) return `<div class="empty-state"><p>ডেটা নেই</p></div>`;
+  return list.map((x,i) => `
+    <div class="flex items-center gap-1 mb-1" style="padding:8px 0;">
+      <span style="font-weight:800;color:${i===0?'var(--warning)':'var(--text-muted)'};width:24px;">#${i+1}</span>
+      <div class="avatar" style="width:32px;height:32px;font-size:0.9rem;">${x.m.avatar||'👤'}</div>
+      <div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:0.85rem;">${escapeHtml(x.m.name)}</div>
+        <div class="progress-bar" style="height:4px;margin-top:4px;"><div class="progress-fill" style="width:${x.pct}%"></div></div>
+      </div>
+      <span style="font-weight:700;font-size:0.85rem;color:var(--accent);">${x.pct}%</span>
+    </div>
+  `).join('');
+}
+
+function quickMarkAll(status) {
+  const date = formatDate(new Date());
+  state.members.filter(m=>m.active!==false).forEach(m => {
+    if (!state.attendance[date]) state.attendance[date] = {};
+    state.attendance[date][m.id] = { status, overtime:0, note:'' };
+  });
+  saveState();
+  toast(`আজ সবাইকে "${status}" হিসেবে মার্ক করা হয়েছে`, 'success');
+  renderAdminDashboard(document.getElementById('admin-content'));
+}
+
+function renderMembers(container) {
+  const rows = state.members.map(m => `
+    <tr>
+      <td data-label="সদস্য">
+        <div class="member-cell">
+          <div class="avatar">${m.avatar||'👤'}</div>
+          <div class="member-info"><div class="name">${escapeHtml(m.name)}</div><div class="id">${m.id}</div></div>
+        </div>
+      </td>
+      <td data-label="ডিপার্টমেন্ট">${escapeHtml(m.dept||'—')}</td>
+      <td data-label="ফোন">${escapeHtml(m.phone||'—')}</td>
+      <td data-label="ইমেইল">${escapeHtml(m.email||'—')}</td>
+      <td data-label="যোগদান">${m.joinDate||'—'}</td>
+      <td data-label="অ্যাকশন">
+        <div class="flex gap-1">
+          <button class="btn btn-xs btn-ghost" onclick="openMemberModal('${m.id}')">✏️</button>
+          <button class="btn btn-xs btn-danger" onclick="deleteMember('${m.id}')">🗑️</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+  container.innerHTML = `
+    <div class="flex justify-between items-center mb-2 flex-wrap gap-1">
+      <p class="text-dim">মোট ${state.members.length} জন সদস্য</p>
+      <button class="btn btn-primary btn-sm" onclick="openMemberModal()">➕ নতুন সদস্য</button>
+    </div>
+    <div class="glass-strong card-3d" style="padding:0;overflow:hidden;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>সদস্য</th><th>ডিপার্টমেন্ট</th><th>ফোন</th><th>ইমেইল</th><th>যোগদান</th><th>অ্যাকশন</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="6"><div class="empty-state">কোনো সদস্য নেই</div></td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function renderAttendance(container) {
+  if (!attendanceDraft[selectedDate]) attendanceDraft[selectedDate] = { ...getAttendanceForDate(selectedDate) };
+  const draft = attendanceDraft[selectedDate];
+  const members = state.members.filter(m => m.active !== false);
+  const statuses = [
+    { key:'present', label:'উপস্থিত', icon:'✅' },
+    { key:'absent', label:'অনুপস্থিত', icon:'❌' },
+    { key:'late', label:'দেরি', icon:'⏰' },
+    { key:'leave', label:'ছুটি', icon:'📝' },
+    { key:'holiday', label:'ছুটির দিন', icon:'🏖️' },
+  ];
+  const rows = members.map(m => {
+    const current = draft[m.id]?.status || '';
+    return `<tr>
+      <td data-label="সদস্য"><div class="member-cell"><div class="avatar">${m.avatar||'👤'}</div><div class="member-info"><div class="name">${escapeHtml(m.name)}</div><div class="id">${m.id}</div></div></div></td>
+      <td data-label="স্ট্যাটাস">
+        <div class="status-group">
+          ${statuses.map(s => `<button class="status-btn ${current===s.key?'active':''}" data-status="${s.key}" onclick="setAttendanceStatus('${m.id}','${s.key}')">${s.icon} ${s.label}</button>`).join('')}
+        </div>
+      </td>
+      <td data-label="ওভারটাইম (ঘণ্টা)">
+        <input type="number" class="input" style="max-width:90px;padding:6px 10px;" min="0" step="0.5" value="${draft[m.id]?.overtime || 0}" onchange="setAttendanceOvertime('${m.id}', this.value)">
+      </td>
+      <td data-label="নোট">
+        <input type="text" class="input" style="padding:6px 10px;font-size:0.82rem;" placeholder="ঐচ্ছিক" value="${escapeHtml(draft[m.id]?.note || '')}" onchange="setAttendanceNote('${m.id}', this.value)">
+      </td>
+    </tr>`;
+  }).join('');
+  container.innerHTML = `
+    <div class="glass-strong card-3d" style="padding:24px;margin-bottom:20px;">
+      <div class="flex justify-between items-center flex-wrap gap-2 mb-2">
+        <div class="flex items-center gap-2 flex-wrap">
+          <label style="margin:0;">তারিখ:</label>
+          <input type="date" class="input" style="max-width:180px;" value="${selectedDate}" onchange="changeAttendanceDate(this.value)">
+        </div>
+        <div class="flex gap-1 flex-wrap">
+          <button class="btn btn-sm btn-accent" onclick="markAllDraft('present')">✅ সবাই উপস্থিত</button>
+          <button class="btn btn-sm btn-ghost" onclick="markAllDraft('holiday')">🏖️ ছুটি</button>
+        </div>
+      </div>
+    </div>
+    <div class="glass-strong card-3d" style="padding:0;overflow:hidden;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>সদস্য</th><th>হাজিরা স্ট্যাটাস</th><th>ওভারটাইম</th><th>নোট</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="4"><div class="empty-state">সদস্য নেই</div></td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="flex justify-between items-center mt-2 flex-wrap gap-1">
+      <button class="btn btn-ghost" onclick="cancelAttendanceDraft()">↩️ বাতিল</button>
+      <button class="btn btn-primary" onclick="saveAttendanceDraft()">💾 হাজিরা সেভ করুন</button>
+    </div>
+  `;
+}
+
+function changeAttendanceDate(date) {
+  selectedDate = date;
+  if (!attendanceDraft[date]) attendanceDraft[date] = { ...getAttendanceForDate(date) };
+  renderAttendance(document.getElementById('admin-content'));
+}
+function setAttendanceStatus(memberId, status) {
+  if (!attendanceDraft[selectedDate]) attendanceDraft[selectedDate] = {};
+  if (!attendanceDraft[selectedDate][memberId]) attendanceDraft[selectedDate][memberId] = { overtime:0, note:'' };
+  attendanceDraft[selectedDate][memberId].status = status;
+  renderAttendance(document.getElementById('admin-content'));
+}
+function setAttendanceOvertime(memberId, val) {
+  if (!attendanceDraft[selectedDate]) attendanceDraft[selectedDate] = {};
+  if (!attendanceDraft[selectedDate][memberId]) attendanceDraft[selectedDate][memberId] = { status:'', note:'' };
+  attendanceDraft[selectedDate][memberId].overtime = Number(val) || 0;
+}
+function setAttendanceNote(memberId, val) {
+  if (!attendanceDraft[selectedDate]) attendanceDraft[selectedDate] = {};
+  if (!attendanceDraft[selectedDate][memberId]) attendanceDraft[selectedDate][memberId] = { status:'', overtime:0 };
+  attendanceDraft[selectedDate][memberId].note = val;
+}
+function markAllDraft(status) {
+  if (!attendanceDraft[selectedDate]) attendanceDraft[selectedDate] = {};
+  state.members.filter(m=>m.active!==false).forEach(m => {
+    if (!attendanceDraft[selectedDate][m.id]) attendanceDraft[selectedDate][m.id] = { overtime:0, note:'' };
+    attendanceDraft[selectedDate][m.id].status = status;
+  });
+  renderAttendance(document.getElementById('admin-content'));
+}
+async function saveAttendanceDraft() {
+  const draft = attendanceDraft[selectedDate];
+  if (!draft) { toast('কিছু পরিবর্তন নেই', 'info'); return; }
+  if (!state.attendance[selectedDate]) state.attendance[selectedDate] = {};
+  Object.keys(draft).forEach(mid => { state.attendance[selectedDate][mid] = draft[mid]; });
+  await saveState();
+  toast(`${selectedDate} তারিখের হাজিরা সেভ হয়েছে`, 'success');
+  delete attendanceDraft[selectedDate];
+  renderAttendance(document.getElementById('admin-content'));
+  updateLeaveBadge();
+}
+function cancelAttendanceDraft() {
+  delete attendanceDraft[selectedDate];
+  renderAttendance(document.getElementById('admin-content'));
+  toast('ড্রাফট বাতিল হয়েছে', 'info');
+}
+
+function renderReports(container) {
+  const mk = selectedMonth;
+  const members = state.members.filter(m=>m.active!==false);
+  const rows = members.map(m => {
+    const s = getMemberStats(m.id, mk);
+    return `<tr>
+      <td data-label="সদস্য"><div class="member-cell"><div class="avatar" style="width:32px;height:32px;font-size:0.9rem;">${m.avatar||'👤'}</div><div class="member-info"><div class="name">${escapeHtml(m.name)}</div><div class="id">${m.id}</div></div></div></td>
+      <td data-label="উপস্থিত"><span class="badge badge-present">${s.present}</span></td>
+      <td data-label="অনুপস্থিত"><span class="badge badge-absent">${s.absent}</span></td>
+      <td data-label="দেরি"><span class="badge badge-late">${s.late}</span></td>
+      <td data-label="ছুটি"><span class="badge badge-leave">${s.leave}</span></td>
+      <td data-label="মোট দিন">${s.totalMarked}/${s.totalDays}</td>
+      <td data-label="উপস্থিতি %">
+        <div style="min-width:100px;">
+          <div class="flex justify-between" style="font-size:0.78rem;"><span>${s.attendancePct}%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${s.attendancePct}%"></div></div>
+        </div>
+      </td>
+      <td data-label="ওভারটাইম">${s.overtime} ঘণ্টা</td>
+    </tr>`;
+  }).join('');
+  container.innerHTML = `
+    <div class="glass-strong card-3d" style="padding:24px;margin-bottom:20px;">
+      <div class="flex justify-between items-center flex-wrap gap-2">
+        <div class="month-nav">
+          <button onclick="changeReportMonth(-1)">‹</button>
+          <input type="month" class="input" style="max-width:180px;" value="${mk}" onchange="changeReportMonth(0, this.value)">
+          <button onclick="changeReportMonth(1)">›</button>
+        </div>
+        <button class="btn btn-sm btn-accent" onclick="exportCSV()">📥 CSV ডাউনলোড</button>
+      </div>
+    </div>
+    <div class="glass-strong card-3d" style="padding:0;overflow:hidden;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>সদস্য</th><th>উপস্থিত</th><th>অনুপস্থিত</th><th>দেরি</th><th>ছুটি</th><th>মোট দিন</th><th>উপস্থিতি %</th><th>ওভারটাইম</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="8"><div class="empty-state">ডেটা নেই</div></td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+function changeReportMonth(delta, val) {
+  if (val) selectedMonth = val;
+  else {
+    const [y,m] = selectedMonth.split('-').map(Number);
+    selectedMonth = formatDate(new Date(y, m-1+delta, 1)).slice(0,7);
+  }
+  renderReports(document.getElementById('admin-content'));
+}
+function exportCSV() {
+  const mk = selectedMonth;
+  const members = state.members.filter(m=>m.active!==false);
+  const header = ['Member ID','Name','Present','Absent','Late','Leave','Total Marked','Total Days','Attendance %','Overtime Hours'];
+  const rows = members.map(m => {
+    const s = getMemberStats(m.id, mk);
+    return [m.id, m.name, s.present, s.absent, s.late, s.leave, s.totalMarked, s.totalDays, s.attendancePct, s.overtime];
+  });
+  const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type:'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `attendance-report-${mk}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('CSV ডাউনলোড হয়েছে', 'success');
+}
+
+function renderLeaves(container) {
+  updateLeaveBadge();
+  const pending = state.leaves.filter(l => l.status === 'pending');
+  const history = state.leaves.filter(l => l.status !== 'pending').sort((a,b)=>(b.appliedAt||'').localeCompare(a.appliedAt||''));
+  const renderList = (list, showActions) => {
+    if (!list.length) return `<div class="empty-state" style="padding:24px;"><div class="empty-icon">📭</div><p>কোনো আবেদন নেই</p></div>`;
+    return list.map(l => {
+      const m = getMember(l.memberId);
+      const badge = l.status === 'pending' ? 'badge-late' : l.status === 'approved' ? 'badge-present' : 'badge-absent';
+      const label = l.status === 'pending' ? 'অপেক্ষমাণ' : l.status === 'approved' ? 'অনুমোদিত' : 'বাতিল';
+      return `<div class="glass" style="padding:16px;margin-bottom:10px;">
+        <div class="flex justify-between items-start flex-wrap gap-1">
+          <div>
+            <div class="flex items-center gap-1">
+              <div class="avatar" style="width:34px;height:34px;font-size:1rem;">${m?.avatar||'👤'}</div>
+              <div><strong>${escapeHtml(m?.name||l.memberId)}</strong><div class="text-muted" style="font-size:0.75rem;">${l.fromDate} → ${l.toDate}</div></div>
+            </div>
+            <p style="margin-top:8px;font-size:0.85rem;color:var(--text-dim);">কারণ: ${escapeHtml(l.reason||'—')}</p>
+          </div>
+          <div class="flex items-center gap-1 flex-wrap">
+            <span class="badge ${badge}">${label}</span>
+            ${showActions ? `<button class="btn btn-xs btn-accent" onclick="updateLeave('${l.id}','approved')">✅ অনুমোদন</button><button class="btn btn-xs btn-danger" onclick="updateLeave('${l.id}','rejected')">❌ বাতিল</button>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  };
+  container.innerHTML = `
+    <h3 style="font-size:1.05rem;margin-bottom:12px;">⏳ অপেক্ষমাণ (${pending.length})</h3>
+    ${renderList(pending, true)}
+    <h3 style="font-size:1.05rem;margin:24px 0 12px;">📜 ইতিহাস</h3>
+    ${renderList(history.slice(0,20), false)}
+  `;
+}
+async function updateLeave(id, status) {
+  const leave = state.leaves.find(l => l.id === id);
+  if (!leave) return;
+  leave.status = status;
+  await saveState();
+  toast(status === 'approved' ? 'ছুটি অনুমোদিত হয়েছে' : 'ছুটি বাতিল হয়েছে', status === 'approved' ? 'success' : 'info');
+  renderLeaves(document.getElementById('admin-content'));
+  updateLeaveBadge();
+}
+
+function renderSettings(container) {
+  container.innerHTML = `
+    <div class="glass-strong card-3d" style="padding:24px;margin-bottom:20px;">
+      <h3 style="font-size:1.05rem;margin-bottom:16px;">🏢 সংগঠনের সেটিংস</h3>
+      <div class="form-group"><label>সংগঠনের নাম</label><input class="input" id="set-org-name" value="${escapeHtml(state.settings.orgName)}"></div>
+      <div class="form-group"><label>অ্যাডমিন পিন</label><input class="input" type="password" id="set-admin-pin" placeholder="নতুন পিন (খালি রাখলে অপরিবর্তিত)"></div>
+      <button class="btn btn-primary" onclick="saveOrgSettings()">💾 সেভ করুন</button>
+    </div>
+    <div class="glass-strong card-3d" style="padding:24px;">
+      <h3 style="font-size:1.05rem;margin-bottom:16px;">📦 ব্যাকআপ</h3>
+      <div class="flex gap-1 flex-wrap">
+        <button class="btn btn-ghost btn-sm" onclick="exportJSON()">📥 JSON এক্সপোর্ট</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('import-file').click()">📤 JSON ইমপোর্ট</button>
+        <input type="file" id="import-file" accept=".json" class="hidden" onchange="importJSON(event)">
+        <button class="btn btn-danger btn-sm" onclick="resetAllData()">🗑️ সব ডেটা রিসেট</button>
+      </div>
+      <p class="text-muted" style="font-size:0.78rem;margin-top:12px;">🔗 Firebase Firestore রিয়েল-টাইম সিঙ্ক সক্রিয়। যেকোনো পরিবর্তন সঙ্গে সঙ্গে সব ব্রাউজারে পৌঁছে যাবে।</p>
+    </div>
+  `;
+}
+async function saveOrgSettings() {
+  const name = document.getElementById('set-org-name').value.trim();
+  const pin = document.getElementById('set-admin-pin').value.trim();
+  if (name) state.settings.orgName = name;
+  if (pin) state.settings.adminPin = pin;
+  await saveState();
+  document.getElementById('sidebar-org-name').textContent = state.settings.orgName;
+  toast('সেটিংস সেভ হয়েছে', 'success');
+}
+
+// ============================================================
+// MEMBER SECTIONS
+// ============================================================
+function setMemberSection(section) {
+  memberSection = section;
+  document.querySelectorAll('.bottom-nav-item').forEach(n => n.classList.toggle('active', n.dataset.mSection === section));
+  const titles = { profile:'আমার প্রোফাইল', attendance:'আমার হাজিরা', leaves:'আমার ছুটি' };
+  document.getElementById('member-page-title').textContent = titles[section] || 'প্রোফাইল';
+  const c = document.getElementById('member-content');
+  if (section === 'profile') renderMemberProfile(c);
+  else if (section === 'attendance') renderMemberAttendance(c);
+  else if (section === 'leaves') renderMemberLeaves(c);
+}
+
+function renderMemberProfile(container) {
+  const m = getMember(currentUser.memberId);
+  if (!m) { container.innerHTML = '<div class="empty-state">সদস্য পাওয়া যায়নি</div>'; return; }
+  const mk = formatDate(new Date()).slice(0,7);
+  const s = getMemberStats(m.id, mk);
+  container.innerHTML = `
+    <div class="glass-strong card-3d" style="padding:28px;margin-bottom:20px;text-align:center;">
+      <div class="avatar avatar-lg" style="margin:0 auto 12px;">${m.avatar||'👤'}</div>
+      <h2 style="font-size:1.3rem;">${escapeHtml(m.name)}</h2>
+      <p class="text-dim">${m.id} · ${escapeHtml(m.dept||'—')}</p>
+      <div class="flex justify-center gap-2 mt-2 flex-wrap">
+        <span class="badge badge-present">যোগদান: ${m.joinDate||'—'}</span>
+      </div>
+    </div>
+    <div class="grid grid-4 mb-3">
+      ${statCard('✅', s.present, 'উপস্থিত (এই মাসে)', 'var(--success)')}
+      ${statCard('❌', s.absent, 'অনুপস্থিত', 'var(--danger)')}
+      ${statCard('⏰', s.late, 'দেরি', 'var(--warning)')}
+      ${statCard('📝', s.leave, 'ছুটি', 'var(--primary2)')}
+    </div>
+    <div class="glass-strong card-3d" style="padding:24px;margin-bottom:20px;">
+      <h3 style="font-size:1rem;margin-bottom:12px;">📊 উপস্থিতির হার</h3>
+      <div class="flex justify-between" style="font-size:0.85rem;margin-bottom:4px;"><span>এই মাসে</span><strong style="color:var(--accent);">${s.attendancePct}%</strong></div>
+      <div class="progress-bar" style="height:12px;"><div class="progress-fill" style="width:${s.attendancePct}%"></div></div>
+      <p class="text-muted mt-1" style="font-size:0.78rem;">মোট ${s.totalMarked}/${s.totalDays} দিনের হাজিরা রেকর্ড আছে।</p>
+    </div>
+    <div class="glass-strong card-3d" style="padding:24px;">
+      <h3 style="font-size:1rem;margin-bottom:16px;">📇 ব্যক্তিগত তথ্য</h3>
+      <div class="history-item"><span class="text-dim">📧 ইমেইল</span><strong>${escapeHtml(m.email||'—')}</strong></div>
+      <div class="history-item"><span class="text-dim">📱 ফোন</span><strong>${escapeHtml(m.phone||'—')}</strong></div>
+      <div class="history-item"><span class="text-dim">🏢 ডিপার্টমেন্ট</span><strong>${escapeHtml(m.dept||'—')}</strong></div>
+      <div class="history-item"><span class="text-dim">📅 যোগদানের তারিখ</span><strong>${m.joinDate||'—'}</strong></div>
+    </div>
+  `;
+}
+
+function renderMemberAttendance(container) {
+  const m = getMember(currentUser.memberId);
+  if (!m) return;
+  const mk = selectedMonth;
+  const records = getMemberAttendance(m.id, mk);
+  const labels = { present:'উপস্থিত', absent:'অনুপস্থিত', late:'দেরি', leave:'ছুটি', holiday:'ছুটির দিন' };
+  const badges = { present:'badge-present', absent:'badge-absent', late:'badge-late', leave:'badge-leave', holiday:'badge-holiday' };
+  const list = records.slice().reverse().map(r => {
+    if (!r.status) return '';
+    return `<div class="history-item">
+      <div>
+        <div class="history-date">${r.date}</div>
+        <div class="history-day">${new Date(r.date).toLocaleDateString('bn-BD', {weekday:'long'})} ${r.overtime ? '· ওভারটাইম '+r.overtime+'ঘ' : ''}</div>
+      </div>
+      <span class="badge ${badges[r.status]||'badge-holiday'}">${labels[r.status]||r.status}</span>
+    </div>`;
+  }).filter(Boolean).join('');
+  container.innerHTML = `
+    <div class="glass-strong card-3d" style="padding:24px;margin-bottom:20px;">
+      <div class="month-nav justify-center">
+        <button onclick="changeMemberMonth(-1)">‹</button>
+        <input type="month" class="input" style="max-width:180px;text-align:center;" value="${mk}" onchange="changeMemberMonth(0, this.value)">
+        <button onclick="changeMemberMonth(1)">›</button>
+      </div>
+    </div>
+    ${list || '<div class="empty-state"><div class="empty-icon">📭</div><p>এই মাসে কোনো হাজিরা রেকর্ড নেই</p></div>'}
+  `;
+}
+function changeMemberMonth(delta, val) {
+  if (val) selectedMonth = val;
+  else {
+    const [y,m] = selectedMonth.split('-').map(Number);
+    selectedMonth = formatDate(new Date(y, m-1+delta, 1)).slice(0,7);
+  }
+  renderMemberAttendance(document.getElementById('member-content'));
+}
+
+function renderMemberLeaves(container) {
+  const m = getMember(currentUser.memberId);
+  if (!m) return;
+  const myLeaves = state.leaves.filter(l => l.memberId === m.id).sort((a,b)=>(b.appliedAt||'').localeCompare(a.appliedAt||''));
+  const list = myLeaves.map(l => {
+    const badge = l.status === 'pending' ? 'badge-late' : l.status === 'approved' ? 'badge-present' : 'badge-absent';
+    const label = l.status === 'pending' ? 'অপেক্ষমাণ' : l.status === 'approved' ? 'অনুমোদিত' : 'বাতিল';
+    return `<div class="glass" style="padding:16px;margin-bottom:10px;">
+      <div class="flex justify-between items-start flex-wrap gap-1">
+        <div>
+          <strong>${l.fromDate} → ${l.toDate}</strong>
+          <p class="text-dim" style="font-size:0.82rem;margin-top:4px;">${escapeHtml(l.reason||'—')}</p>
+        </div>
+        <span class="badge ${badge}">${label}</span>
+      </div>
+    </div>`;
+  }).join('');
+  container.innerHTML = `
+    <div class="glass-strong card-3d" style="padding:24px;margin-bottom:20px;">
+      <h3 style="font-size:1rem;margin-bottom:16px;">➕ নতুন ছুটির আবেদন</h3>
+      <div class="row">
+        <div class="form-group"><label>শুরুর তারিখ</label><input type="date" class="input" id="leave-from"></div>
+        <div class="form-group"><label>শেষ তারিখ</label><input type="date" class="input" id="leave-to"></div>
+      </div>
+      <div class="form-group"><label>কারণ</label><textarea class="input" id="leave-reason" rows="2" placeholder="ছুটির কারণ লিখুন..."></textarea></div>
+      <button class="btn btn-accent" onclick="submitLeaveRequest()">📤 আবেদন করুন</button>
+    </div>
+    <h3 style="font-size:1rem;margin-bottom:12px;">📜 আমার আবেদনসমূহ</h3>
+    ${list || '<div class="empty-state"><div class="empty-icon">📭</div><p>কোনো আবেদন নেই</p></div>'}
+  `;
+}
+async function submitLeaveRequest() {
+  const from = document.getElementById('leave-from').value;
+  const to = document.getElementById('leave-to').value;
+  const reason = document.getElementById('leave-reason').value.trim();
+  if (!from || !to) { toast('তারিখ নির্বাচন করুন', 'error'); return; }
+  if (from > to) { toast('শেষ তারিখ শুরুর তারিখের পরে হতে হবে', 'error'); return; }
+  const leave = { id: uid(), memberId: currentUser.memberId, fromDate: from, toDate: to, reason, status: 'pending', appliedAt: new Date().toISOString() };
+  state.leaves.push(leave);
+  await saveState();
+  toast('ছুটির আবেদন জমা হয়েছে', 'success');
+  renderMemberLeaves(document.getElementById('member-content'));
+}
+
+// ============================================================
+// MODALS
+// ============================================================
+function openModal(html) {
+  document.getElementById('modal-content').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target.id === 'modal-overlay') closeModal();
+});
+function openMemberModal(memberId) {
+  const isEdit = !!memberId;
+  const m = isEdit ? getMember(memberId) : { id:'', name:'', email:'', phone:'', dept:'', joinDate: formatDate(new Date()), avatar:'👤', password:'1234' };
+  openModal(`
+    <h2 class="modal-title">${isEdit ? '✏️ সদস্য সম্পাদনা' : '➕ নতুন সদস্য'}</h2>
+    <div class="form-group"><label>সদস্য আইডি *</label><input class="input" id="fm-id" value="${escapeHtml(m.id)}" ${isEdit?'readonly':''} placeholder="M006"></div>
+    <div class="form-group"><label>পূর্ণ নাম *</label><input class="input" id="fm-name" value="${escapeHtml(m.name)}" placeholder="নাম"></div>
+    <div class="row">
+      <div class="form-group"><label>ইমেইল</label><input class="input" id="fm-email" type="email" value="${escapeHtml(m.email||'')}"></div>
+      <div class="form-group"><label>ফোন</label><input class="input" id="fm-phone" value="${escapeHtml(m.phone||'')}"></div>
+    </div>
+    <div class="row">
+      <div class="form-group"><label>ডিপার্টমেন্ট</label><input class="input" id="fm-dept" value="${escapeHtml(m.dept||'')}"></div>
+      <div class="form-group"><label>যোগদানের তারিখ</label><input class="input" id="fm-join" type="date" value="${m.joinDate||''}"></div>
+    </div>
+    <div class="row">
+      <div class="form-group"><label>অ্যাভাটার (ইমোজি)</label><input class="input" id="fm-avatar" value="${escapeHtml(m.avatar||'👤')}"></div>
+      <div class="form-group"><label>পাসওয়ার্ড</label><input class="input" id="fm-password" value="${escapeHtml(m.password||'1234')}"></div>
+    </div>
+    <div class="flex gap-1 justify-between mt-2">
+      <button class="btn btn-ghost" onclick="closeModal()">বাতিল</button>
+      <button class="btn btn-primary" onclick="saveMember(${isEdit ? `'${memberId}'` : 'null'})">💾 সেভ</button>
+    </div>
+  `);
+}
+async function saveMember(editId) {
+  const id = document.getElementById('fm-id').value.trim().toUpperCase();
+  const name = document.getElementById('fm-name').value.trim();
+  if (!id || !name) { toast('আইডি ও নাম আবশ্যক', 'error'); return; }
+  const data = {
+    id, name,
+    email: document.getElementById('fm-email').value.trim(),
+    phone: document.getElementById('fm-phone').value.trim(),
+    dept: document.getElementById('fm-dept').value.trim(),
+    joinDate: document.getElementById('fm-join').value,
+    avatar: document.getElementById('fm-avatar').value.trim() || '👤',
+    password: document.getElementById('fm-password').value.trim() || '1234',
+    active: true
+  };
+  if (editId) {
+    const idx = state.members.findIndex(m => m.id === editId);
+    if (idx > -1) state.members[idx] = { ...state.members[idx], ...data };
+    toast('সদস্য আপডেট হয়েছে', 'success');
+  } else {
+    if (state.members.find(m => m.id === id)) { toast('এই আইডি ইতিমধ্যে আছে', 'error'); return; }
+    state.members.push(data);
+    toast('নতুন সদস্য যোগ হয়েছে', 'success');
+  }
+  await saveState();
+  closeModal();
+  setAdminSection('members');
+}
+async function deleteMember(id) {
+  if (!confirm(`সদস্য ${id} কে ডিলিট করতে চান?`)) return;
+  state.members = state.members.filter(m => m.id !== id);
+  await saveState();
+  toast('সদস্য ডিলিট হয়েছে', 'success');
+  setAdminSection('members');
+}
+
+// ============================================================
+// BACKUP / RESET
+// ============================================================
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `attendance-backup-${formatDate(new Date())}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('ব্যাকআপ ডাউনলোড হয়েছে', 'success');
+}
+async function importJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.members) throw new Error('Invalid format');
+      state = deepMerge(state, data);
+      await saveState();
+      toast('ডেটা ইমপোর্ট সফল', 'success');
+      setAdminSection('dashboard');
+    } catch(err) { toast('ইমপোর্ট ব্যর্থ: ' + err.message, 'error'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+async function resetAllData() {
+  if (!confirm('সব ডেটা রিসেট করতে চান? এটি ফিরিয়ে আনা যাবে না।')) return;
+  state = {
+    members: [...DEFAULT_MEMBERS],
+    attendance: {},
+    leaves: [],
+    settings: { orgName: 'আমার সংগঠন', adminPin: 'admin123' },
+    lastUpdated: null
+  };
+  await saveState();
+  toast('ডেটা রিসেট হয়েছে', 'success');
+  setAdminSection('dashboard');
+}
+
+// ============================================================
+// EXPOSE FUNCTIONS TO WINDOW (for onclick handlers)
+// ============================================================
+const windowFns = {
+  switchLoginRole, loginAdmin, loginMember, logout,
+  setAdminSection, setMemberSection, toggleSidebar,
+  changeAttendanceDate, setAttendanceStatus, setAttendanceOvertime, setAttendanceNote,
+  markAllDraft, saveAttendanceDraft, cancelAttendanceDraft,
+  changeReportMonth, exportCSV, updateLeave,
+  saveOrgSettings, exportJSON, importJSON, resetAllData,
+  openMemberModal, saveMember, deleteMember, closeModal,
+  changeMemberMonth, submitLeaveRequest, quickMarkAll
+};
+Object.entries(windowFns).forEach(([k,v]) => window[k] = v);
+</script>
+
+</body>
+</html>
